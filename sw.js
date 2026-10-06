@@ -1,12 +1,12 @@
 // Service worker: keeps a copy of the app on the phone so it opens without internet.
 // When you change any file, bump VERSION (v1 -> v2) so phones fetch the new copy.
-const VERSION = "v1";
+const VERSION = "v2";
 const CACHE = "training-" + VERSION;
 const FILES = ["./", "index.html", "manifest.webmanifest", "icon-180.png", "icon-192.png", "icon-512.png"];
 
-// First visit: download every file into the phone's cache.
+// First visit (and each new VERSION): download fresh copies of every file into the phone's cache.
 self.addEventListener("install", e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES.map(f => new Request(f, { cache: "reload" })))).then(() => self.skipWaiting()));
 });
 
 // New version: delete old copies.
