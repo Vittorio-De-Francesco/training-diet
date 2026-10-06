@@ -1,0 +1,647 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Weekly Training &amp; Food</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Training">
+<meta name="theme-color" content="#f3f6f5">
+<link rel="apple-touch-icon" href="icon-180.png">
+
+<style>
+/* Layout: one narrow column, sticky tab bar (Training / Routine / Groceries); days and categories as collapsible groups; training shows one day at a time */
+:root{
+  --bg:#f3f6f5; --surface:#ffffff; --fg:#17211f; --muted:#5d6b68; --line:#dde5e2;
+  --accent:#0e6b5c; --accent-soft:#e0efeb; --done:#9aa8a4; --warn:#a4621b;
+  --gym:#3a4a9c; --gym-soft:#e7eaf7; --swim:#0b8a8f; --swim-soft:#ddf2f2; --walk:#7a6a2e; --walk-soft:#f2eedc; --rest:#8a96a0;
+  --display:"Barlow Condensed","Arial Narrow",sans-serif;
+  --body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1514; --surface:#18201f; --fg:#e5ecea; --muted:#95a39f; --line:#29332f;
+  --accent:#5cc2ad; --accent-soft:#1c302b; --done:#5f6d69; --warn:#e0a35e;
+  --gym:#9da9f2; --gym-soft:#232b4d; --swim:#5ed0d2; --swim-soft:#133637; --walk:#d9c57a; --walk-soft:#35301a; --rest:#7e8a94; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1514; --surface:#18201f; --fg:#e5ecea; --muted:#95a39f; --line:#29332f;
+  --accent:#5cc2ad; --accent-soft:#1c302b; --done:#5f6d69; --warn:#e0a35e;
+  --gym:#9da9f2; --gym-soft:#232b4d; --swim:#5ed0d2; --swim-soft:#133637; --walk:#d9c57a; --walk-soft:#35301a; --rest:#7e8a94; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.45}
+.wrap{max-width:640px;margin:0 auto;padding-inline:16px;padding-block:20px 48px}
+h1{font-family:var(--display);font-weight:700;font-size:2rem;letter-spacing:.01em;margin:0;text-wrap:balance;line-height:1.05}
+.sub{color:var(--muted);margin:.35rem 0 0;font-size:.9rem}
+.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;gap:6px;padding-block:14px 10px;margin-top:6px;border-bottom:1px solid var(--line)}
+.tab{flex:1;min-width:0;font:600 .86rem var(--body);padding:10px 4px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}
+.tab[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+.tab:focus-visible,.row:focus-within,.grp>summary:focus-visible,.btn:focus-visible,#training button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.panel{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+.grp{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.grp>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:12px 14px}
+.grp>summary::-webkit-details-marker{display:none}
+.gname{font-family:var(--display);font-weight:700;font-size:1.25rem;letter-spacing:.02em;text-transform:uppercase}
+.tag{font-size:.72rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:2px 7px;border-radius:5px}
+.tag.today{color:var(--bg);background:var(--accent)}
+.count{margin-left:auto;font-family:var(--mono);font-size:.8rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.count.full{color:var(--accent)}
+.chev{width:9px;height:9px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);margin:0 2px 4px 4px;transition:transform .15s}
+.grp[open] .chev{transform:rotate(-135deg);margin-bottom:-2px}
+.note{margin:0;padding:0 14px 8px;color:var(--muted);font-size:.85rem}
+.sect{font-size:.72rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:10px 14px 4px}
+ul{list-style:none;margin:0;padding:0 0 6px}
+.row{display:flex;align-items:flex-start;gap:12px;padding:9px 14px;cursor:pointer;border-top:1px solid var(--line)}
+.row input{appearance:none;flex:none;width:22px;height:22px;margin:0;border:2px solid var(--muted);border-radius:6px;display:grid;place-items:center;cursor:pointer;background:transparent}
+.row input:checked{background:var(--accent);border-color:var(--accent)}
+.row input:checked::after{content:"";width:6px;height:11px;border:solid var(--bg);border-width:0 2.5px 2.5px 0;transform:rotate(45deg) translate(-1px,-1px)}
+.txt{min-width:0;flex:1}
+.txt small{display:block;color:var(--muted);font-size:.82rem;margin-top:1px}
+.qty{flex:none;font-family:var(--mono);font-size:.8rem;color:var(--accent);padding-top:2px;text-align:right;max-width:40%}
+.row.on .txt,.row.on .qty{color:var(--done);text-decoration:line-through;text-decoration-color:var(--done)}
+.row.on .txt small{color:var(--done)}
+.flag{color:var(--warn)}
+.foot{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:18px}
+.btn{font:600 .88rem var(--body);padding:9px 14px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}
+.btn.arm{border-color:var(--warn);color:var(--warn)}
+.status{font-size:.8rem;color:var(--muted)}
+
+/* Training tab (scoped) */
+#training .t-phase{display:grid;grid-template-columns:1fr 1fr;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:3px}
+#training .t-phase button{font:600 .82rem var(--body);border:0;background:transparent;color:var(--muted);padding:8px 6px;border-radius:8px;cursor:pointer}
+#training .t-phase button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+#training .t-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+#training .t-day{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 2px 7px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--fg);font:inherit}
+#training .t-day b{font-family:var(--display);font-size:1.05rem;letter-spacing:.04em}
+#training .t-day[aria-pressed="true"]{border-color:var(--fg);box-shadow:inset 0 0 0 1px var(--fg)}
+#training .t-dots{display:flex;gap:3px;height:6px}
+#training .t-dot{width:6px;height:6px;border-radius:50%}
+#training .d-gym{background:var(--gym)} #training .d-swim{background:var(--swim)} #training .d-walk{background:var(--walk)} #training .d-rest{background:var(--rest)}
+#training .t-legend{display:flex;flex-wrap:wrap;gap:12px;font-size:.78rem;color:var(--muted)}
+#training .t-legend span{display:inline-flex;align-items:center;gap:5px}
+#training .t-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-top:4px}
+#training .t-head h2{font-family:var(--display);font-weight:700;font-size:1.45rem;text-transform:uppercase;margin:0}
+#training .t-block{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+#training .t-bhead{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;flex-wrap:wrap}
+#training .t-bhead h3{font-family:var(--display);font-weight:700;font-size:1.15rem;text-transform:uppercase;letter-spacing:.03em;margin:0;min-width:0}
+#training .t-meta{display:flex;gap:8px;align-items:center}
+#training .t-time{font:500 .8rem var(--mono);color:var(--muted);font-variant-numeric:tabular-nums}
+#training .t-kind{font:600 .7rem var(--body);text-transform:uppercase;letter-spacing:.08em;padding:3px 8px;border-radius:99px;color:var(--surface)}
+#training .k-gym .t-bhead{background:var(--gym-soft)} #training .k-gym .t-kind{background:var(--gym)}
+#training .k-swim .t-bhead{background:var(--swim-soft)} #training .k-swim .t-kind{background:var(--swim)}
+#training .k-walk .t-bhead{background:var(--walk-soft)} #training .k-walk .t-kind{background:var(--walk)}
+#training .k-rest .t-kind{background:var(--rest)}
+#training .t-scroll{overflow-x:auto}
+#training table{width:100%;border-collapse:collapse;font-size:.9rem}
+#training th{text-align:left;font:600 .7rem var(--body);text-transform:uppercase;letter-spacing:.07em;color:var(--muted);padding:8px 14px;border-bottom:1px solid var(--line)}
+#training td{padding:9px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+#training tr:last-child td{border-bottom:0}
+#training td.n{font-family:var(--mono);font-size:.82rem;white-space:nowrap;font-variant-numeric:tabular-nums}
+#training .t-note{font-size:.78rem;color:var(--muted);display:block;margin-top:2px}
+#training .t-new{color:var(--gym);font-weight:600}
+#training .t-opt{color:var(--warn);font-weight:600}
+#training .t-foot{padding:10px 14px;font-size:.85rem;color:var(--muted);border-top:1px solid var(--line)}
+#training .t-total{font-family:var(--mono);font-size:.8rem;color:var(--swim)}
+#training .t-food{font-size:.85rem;color:var(--muted);padding:10px 14px;background:var(--surface);border:1px dashed var(--line);border-radius:12px}
+#training .t-food b{color:var(--fg)}
+#training .t-link{background:none;border:0;padding:0;font:inherit;color:var(--accent);font-weight:600;cursor:pointer;text-decoration:underline}
+#training .t-ref{display:flex;flex-direction:column;gap:10px;margin-top:8px}
+#training .t-ref .grp p{margin:0;padding:0 14px 12px;max-width:65ch;font-size:.9rem}
+#training .t-ref .grp ul{padding:0 14px 12px 32px;list-style:disc;display:flex;flex-direction:column;gap:4px;font-size:.9rem}
+.rlink{flex:none;align-self:center;font:600 .78rem var(--body);color:var(--accent);background:var(--accent-soft);border:0;border-radius:6px;padding:5px 9px;cursor:pointer;white-space:nowrap}
+.rlink:focus-visible,.rback:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.rhead{font-family:var(--display);font-weight:700;font-size:1.05rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:10px 2px -2px}
+.rcard>summary{flex-wrap:wrap}
+.rcard .rt{font-weight:600;font-size:1rem;min-width:0;flex:1}
+.rbody{padding:0 14px 14px;display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--line)}
+.rmac{font-family:var(--mono);font-size:.78rem;color:var(--accent);padding-top:10px;font-variant-numeric:tabular-nums}
+.rused{font-size:.82rem;color:var(--muted)}
+.rbody h4{margin:0;font-size:.72rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.rbody ul{list-style:disc;padding:0 0 0 20px;display:flex;flex-direction:column;gap:3px}
+.rbody ol{margin:0;padding:0 0 0 20px;display:flex;flex-direction:column;gap:6px;max-width:65ch}
+.rtip{font-size:.86rem;background:var(--accent-soft);border-radius:8px;padding:8px 10px;margin:0}
+.ropt{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:.9rem}
+.ropt b{font-weight:600}.ropt small{display:block;color:var(--muted);font-family:var(--mono);font-size:.75rem}
+.rback{align-self:flex-start;font:600 .82rem var(--body);background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer;margin-top:10px}
+.rcard.flash{box-shadow:0 0 0 2px var(--accent)}
+.gseg{display:grid;grid-template-columns:1fr 1fr;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:3px}
+.gseg button{font:600 .82rem var(--body);border:0;background:transparent;color:var(--muted);padding:8px 6px;border-radius:8px;cursor:pointer}
+.gseg button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+.gseg button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.msum{padding:14px;background:var(--accent-soft);border-radius:12px}
+.mbig{font-family:var(--display);font-weight:700;font-size:2.2rem;line-height:1;color:var(--accent);font-variant-numeric:tabular-nums}
+.mbig span{font-size:1.1rem;color:var(--fg)}
+.msub{font-family:var(--mono);font-size:.82rem;margin-top:6px;font-variant-numeric:tabular-nums}
+.mnote{font-size:.8rem;color:var(--muted);margin:8px 0 0;max-width:65ch}
+.mpad{padding:4px 14px 12px}
+.mbar{display:grid;grid-template-columns:7.5rem 1fr 4.6rem;align-items:center;gap:8px;padding:4px 0;font-size:.85rem}
+.mlab{min-width:0;overflow-wrap:anywhere}
+.mtrack{height:8px;background:var(--line);border-radius:4px;overflow:hidden}
+.mfill{display:block;height:100%;background:var(--accent);border-radius:4px}
+.mval{font-family:var(--mono);font-size:.78rem;text-align:right;font-variant-numeric:tabular-nums}
+.cday{display:grid;grid-template-columns:6.2rem 1fr;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:.86rem}
+.cdate{font-family:var(--mono);font-size:.78rem;color:var(--accent);display:flex;flex-direction:column;gap:3px;align-items:flex-start}
+.citems{min-width:0}
+.mtips{list-style:disc;padding:0 0 0 18px;display:flex;flex-direction:column;gap:6px;font-size:.88rem}
+.mrow{display:flex;gap:12px;padding:9px 14px;border-top:1px solid var(--line)}
+.mrow i{font-style:normal;color:var(--warn)}
+.mright{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.rh{font-size:.68rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);text-align:right;max-width:6.5rem}
+@media (prefers-reduced-motion:reduce){.chev{transition:none}}
+</style>
+
+<div class="wrap">
+  <h1>Weekly Training &amp; Food</h1>
+  <p class="sub">Gym + swimming · Saturday-to-Friday food cycle · tap a recipe link to see the full recipe</p>
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="tab-training" aria-selected="false" aria-controls="training">Training</button>
+    <button class="tab" role="tab" id="tab-routine" aria-selected="true" aria-controls="routine">Routine</button>
+    <button class="tab" role="tab" id="tab-recipes" aria-selected="false" aria-controls="recipes">Recipes</button>
+    <button class="tab" role="tab" id="tab-groceries" aria-selected="false" aria-controls="groceries">Groceries</button>
+  </div>
+  <section id="training" class="panel" role="tabpanel" aria-labelledby="tab-training" hidden>
+    <div class="t-phase" role="group" aria-label="Phase">
+      <button id="ph-oct" data-phase="oct">October · gym + walks</button>
+      <button id="ph-swim" data-phase="swim">From end Oct · gym + swim</button>
+    </div>
+    <div class="t-days" id="tdays" role="group" aria-label="Day"></div>
+    <div class="t-legend" aria-hidden="true"><span><i class="t-dot d-gym"></i>Gym</span><span><i class="t-dot d-swim"></i>Swim</span><span><i class="t-dot d-walk"></i>Walk</span><span><i class="t-dot d-rest"></i>Rest</span></div>
+    <div class="t-head"><h2 id="tdayTitle">Monday</h2><span class="tag today" id="ttoday" hidden>Today</span></div>
+    <div id="ttimeline" class="panel" style="margin-top:0"></div>
+    <div class="t-ref">
+      <details class="grp"><summary><span class="gname">Double progression</span><span class="chev" style="margin-left:auto"></span></summary>
+        <p>Stay in the rep range. When every working set reaches the top of the range with clean form and about 1-2 reps in reserve, add the smallest available load next time and restart near the bottom. Example, pulldown at 6-10: 65 kg × 6/6/6 → 10/10/10 over several weeks → 67.5 kg × 6/6/6.</p></details>
+      <details class="grp"><summary><span class="gname">Deload</span><span class="chev" style="margin-left:auto"></span></summary>
+        <p>Check around weeks 6-8. Deload earlier if several lifts stall for about 2 weeks, joints stay achy, sleep worsens or swims feel disproportionately hard. Same exercises, about half the working sets, no grinding reps, swims at about 70% of normal distance.</p></details>
+      <details class="grp"><summary><span class="gname">Swim technique</span><span class="chev" style="margin-left:auto"></span></summary>
+        <ul><li>Look down and exhale steadily underwater.</li><li>Rotate through the torso to breathe; don't lift the head.</li><li>Controlled reach, catch and pull. No paddles or pull buoy at first.</li><li>If wrist tension returns, shorten the session and don't force the catch.</li><li>Start at the bottom of each target (about 1,000 / 800 / 600-700 m) and increase one session at a time.</li></ul></details>
+      <details class="grp"><summary><span class="gname">Calories</span><span class="chev" style="margin-left:auto"></span></summary>
+        <p>Estimated maintenance about 2,500 kcal/day (range 2,350-2,650), with training adding about 200-215 kcal/day on average in both phases. The nutrition plan's 2,200-2,300 kcal is a moderate deficit of about 200-300 kcal. Calibrate with 2-3 weeks of weekly average weight.</p></details>
+    </div>
+  </section>
+  <section id="routine" class="panel" role="tabpanel" aria-labelledby="tab-routine"></section>
+  <section id="recipes" class="panel" role="tabpanel" aria-labelledby="tab-recipes" hidden></section>
+  <section id="groceries" class="panel" role="tabpanel" aria-labelledby="tab-groceries" hidden></section>
+  <div class="foot" id="footbar">
+    <button class="btn" id="reset">Reset this tab</button>
+    <span class="status" id="status">Loading ticks…</span>
+  </div>
+</div>
+
+<script>
+/* Routine items: [text, detail, warn-flag, recipe key] */
+const ROUTINE=[
+ {id:"sat",name:"Saturday",tag:"Shop day",dow:6,items:[
+  ["Legs B at the gym"],
+  ["Banana + whey + creatine","Within an hour after training",false,"fixed"],
+  ["Lunch: eggs + egg whites + toast + fruit","",false,"eggs"],
+  ["Main shop","Groceries tab → Saturday"],
+  ["Freezer: white fish + frozen berries"],
+  ["Fridge: ~920 g chicken + 300 g mince","For Sunday prep and Sunday meals"],
+  ["Afternoon: flexible, only if hungry"],
+  ["Dinner: salmon + potatoes + vegetables","",false,"salmon"],
+  ["Evening: protein-based evening food","Pick option A, B or C",false,"evening"]]},
+ {id:"sun",name:"Sunday",tag:"Prep day",dow:0,items:[
+  ["Label 5 containers Mon–Fri"],
+  ["Cook the batch","3 chicken bowls + 2 beef pastas",false,"prep"],
+  ["Portion it out","Chicken bowls: Mon, Wed, Fri · Beef pasta: Tue, Thu",false,"prep"],
+  ["Cool briefly, then store promptly","Mon/Tue/Wed → fridge · Thu/Fri → freezer",false,"storage"],
+  ["Make sauces: fresh tomato salsa + tzatziki","Salsa for Monday, tzatziki for Wednesday",false,"saucerules"],
+  ["Lunch: chicken wraps + salad + yogurt sauce","",false,"wraps"],
+  ["Afternoon: flexible, only if hungry"],
+  ["Dinner: chicken parmigiana + pasta","",false,"parm"],
+  ["Evening: protein-based evening food","",false,"evening"],
+  ["Move white fish to the fridge"],
+  ["Pack Monday office bag","Chicken bowl · salsa pot + plain yogurt pot for the bowl · protein bar · apple · banana · whey · creatine"]]},
+ {id:"mon",name:"Monday",tag:"Office",dow:1,items:[
+  ["Pull A at 07:00"],
+  ["Banana + whey + creatine","Right after the lift",false,"fixed"],
+  ["Lunch: Mexican chicken-rice bowl","Reheat until steaming, then add the sauces + lime",false,"bowl"],
+  ["Sauce: fresh tomato salsa","Add cold, after reheating",false,"salsa"],
+  ["Afternoon (office): protein bar + apple","No yogurt at the desk",false,"office"],
+  ["Dinner: white fish + potatoes + vegetables","",false,"fish"],
+  ["Evening: protein milk + granola","Option A",false,"evening"]]},
+ {id:"tue",name:"Tuesday",tag:"WFH",dow:2,items:[
+  ["10:30–11:00 banana + whey + creatine","Pre-workout",false,"fixed"],
+  ["12:00 Legs A + Push B"],
+  ["Lunch: beef arrabbiata pasta","Finish with 10 g Parmesan after reheating",false,"beefpasta"],
+  ["Afternoon (WFH): Skyr + berries + granola","",false,"wfh"],
+  ["Top-up shop after work","Groceries tab → Tuesday"],
+  ["Check chicken use-by reaches Thursday","If not, buy the Thursday 200 g on Wed/Thu",true],
+  ["Dinner: chicken fajitas","",false,"fajitas"],
+  ["Rest of chicken + mince into the fridge"],
+  ["Evening: Skyr / protein yogurt bowl","Option B",false,"evening"]]},
+ {id:"wed",name:"Wednesday",tag:"Office",dow:3,items:[
+  ["Pack office bag","Chicken bowl · tzatziki pot · protein bar · fruit · banana · whey · creatine"],
+  ["Mid-morning: banana + whey + creatine","",false,"fixed"],
+  ["Lunch: Mexican chicken-rice bowl","Reheat until steaming, then add the sauce + lime",false,"bowl"],
+  ["Sauce: tzatziki-style yogurt","Spoon on after reheating",false,"tzatziki"],
+  ["Afternoon (office): protein bar + fruit","",false,"office"],
+  ["Dinner: lean burger + potatoes","",false,"burger"],
+  ["Evening: protein milk + fruit + cereal","Option C",false,"evening"],
+  ["Move Thursday pasta freezer → fridge","",false,"storage"],
+  ["Pack a small Parmesan pot for Thursday"]]},
+ {id:"thu",name:"Thursday",tag:"Office",dow:4,items:[
+  ["Pull B at 07:00"],
+  ["Banana + whey + creatine","Right after the lift",false,"fixed"],
+  ["Lunch: beef arrabbiata pasta","Reheat until steaming, then add Parmesan",false,"beefpasta"],
+  ["Afternoon (office): protein bar + fruit","",false,"office"],
+  ["Dinner: chicken curry + basmati rice","",false,"curry"],
+  ["Evening: Skyr / protein yogurt bowl","Option B",false,"evening"],
+  ["Move Friday bowl freezer → fridge","",false,"storage"],
+  ["Make smoky spicy yogurt for Friday","5 min",false,"smoky"],
+  ["Optional: bananas / Skyr on the way home"]]},
+ {id:"fri",name:"Friday",tag:"WFH",dow:5,items:[
+  ["10:30–11:00 banana + whey + creatine","Pre-workout",false,"fixed"],
+  ["12:00 Push A"],
+  ["Lunch: Mexican chicken-rice bowl","Reheat until steaming, then add the sauce + lime",false,"bowl"],
+  ["Sauce: smoky spicy yogurt","",false,"smoky"],
+  ["Afternoon (WFH): Skyr + fruit + granola","",false,"wfh"],
+  ["Dinner: tuna arrabbiata pasta","",false,"tunapasta"],
+  ["Evening: flexible protein food","Lower end after a bigger dinner",false,"evening"],
+  ["Check fridge + pantry, note what's low for Saturday"]]}
+];
+
+/* Recipes, taken from the Weekly Nutrition Program (29 Sep 2026) */
+const R=(title,group,macros,used,ing,method,tip,extra)=>({title,group,macros,used,ing,method,tip,extra});
+const RECIPES={
+ fixed:R("Banana + whey + creatine","Daily & snacks","~210-230 kcal · 24-26 g P · 28-32 g C · 1-3 g F","Every day",
+  ["1 banana","30 g whey","3-5 g creatine"],
+  ["Mix the whey and creatine with water.","Eat the banana with it."],
+  "This is the start of the day. There is no forced breakfast. On swim days have it by 10:00-10:30."),
+ office:R("Office snack","Daily & snacks","~220-280 kcal · 18-25 g P · 25-40 g C · 5-10 g F","Mon · Wed · Thu (office)",
+  ["1 protein bar (≥20 g protein, ≤8 g fat)","1 apple or other portable fruit"],
+  ["Pack both in the bag the evening before."],
+  "Keep office snacks simple. No yogurt or messy food at the desk."),
+ wfh:R("WFH snack","Daily & snacks","~280-330 kcal · 25-30 g P · 35-45 g C · 3-7 g F","Tue · Fri (WFH)",
+  ["250 g Skyr","Fruit or berries","20-30 g granola"],
+  ["Put the Skyr in a bowl, add fruit/berries and top with granola."],
+  "Measure the granola. It's one of the easiest foods to overshoot."),
+ evening:R("Evening protein food","Daily & snacks","~250-350 kcal · 20-30 g P","Every evening",
+  [],[],
+  "Don't force the same snack every day. On a lighter dinner day use the upper end; after the burger, salmon or parmigiana use the lower end. The target is the daily/weekly calories, not identical meals.",
+  [["Option A","400 ml protein milk + 30 g granola","~300-350 kcal · ~25-30 g P"],
+   ["Option B","250 g Skyr/protein yogurt + berries + 15-20 g chocolate","~250-320 kcal · ~25-30 g P"],
+   ["Option C","Protein milk + fruit + a small cereal portion","~250-350 kcal · ~20-30 g P"]]),
+ bowl:R("Mexican chicken-rice bowl","Weekday lunches","~630-670 kcal · 50-55 g P · 85-95 g C · 7-12 g F · 25-35 min","Mon · Wed · Fri lunch (Sunday prep, ×3)",
+  ["180 g raw chicken breast","85 g dry rice","~100 g bell pepper","50 g onion","50 g corn","60 g salsa","50 g low-fat Greek yogurt/Skyr","Paprika, cumin, garlic, chilli, salt, lime/lemon"],
+  ["Cook the rice according to the pack (normally 12-15 min).","Dice chicken, pepper and onion. Season the chicken heavily with paprika, cumin, garlic, chilli and salt.","Cook the chicken in a hot non-stick pan for 8-10 min until fully cooked. Remove.","Cook pepper/onion in the same pan for 5-7 min; stir in the corn at the end.","Pack rice, chicken and vegetables. Add salsa. Keep the yogurt sauce separate and add it after reheating."],
+  "Sauce rotation: fresh tomato salsa on Monday, tzatziki on Wednesday, smoky spicy yogurt on Friday (see Sauces). For the batch, multiply everything by 3. A squeeze of lime/lemon after reheating makes it taste much fresher. Reheat until thoroughly hot and steaming."),
+ beefpasta:R("Lean-beef arrabbiata pasta","Weekday lunches","~650-700 kcal · 45-50 g P · 75-85 g C · 15-20 g F · 25-30 min","Tue · Thu lunch (Sunday prep, ×2)",
+  ["150 g lean beef mince (~5% fat)","85 g dry pasta","175 g passata","~100 g vegetables (onion/pepper/zucchini)","10 g Parmesan","Garlic, chilli flakes, oregano/basil, salt","Optional: up to 5 g olive oil"],
+  ["Boil the pasta until just al dente; reserve a splash of pasta water.","Brown the beef for 6-8 min. Add the chopped vegetables and cook 4-5 min.","Add garlic/chilli, then passata. Simmer 8-10 min.","Mix in the pasta and a splash of pasta water. Portion, and finish with 10 g Parmesan after reheating."],
+  "For the batch, multiply by 2. Slightly undercook the pasta so it doesn't go soft when reheated."),
+ eggs:R("Eggs, egg whites, toast + fruit","Weekend lunches","~520-600 kcal · 40-50 g P · 10-15 min","Saturday lunch",
+  ["3 whole eggs","150-200 g egg whites","2 slices toast","1 piece of fruit","Salt, pepper, herbs/chilli"],
+  ["Toast the bread.","Cook the eggs and egg whites together as a scramble or omelette in a non-stick pan.","Serve with the fruit."],
+  "If the rest of the day is low in calories, use 200 g egg whites and a larger fruit."),
+ wraps:R("Chicken wraps + salad + yogurt sauce","Weekend lunches","~580-650 kcal · 50-55 g P · 15-20 min","Sunday lunch",
+  ["180 g chicken breast","2 wraps","Salad vegetables","50 g salsa","60 g low-fat yogurt","Garlic + lime/lemon"],
+  ["Season and pan-cook the chicken for 8-10 min; slice.","Warm the wraps briefly.","Mix the yogurt with garlic and lime/lemon.","Fill the wraps with chicken, vegetables, salsa and yogurt sauce."],
+  "Keep the vegetables generous: lots of volume for very few calories."),
+ fish:R("White fish, potatoes + vegetables","Dinners","~600-680 kcal · 50-60 g P · 35-40 min","Monday dinner",
+  ["200-220 g white fish","300-350 g potatoes","250 g vegetables","5-10 g olive oil","60-80 g yogurt for sauce","Lemon, garlic, herbs, salt, pepper"],
+  ["Heat the oven to 210 °C. Cut the potatoes into wedges/cubes, season and toss with most of the oil. Bake 30-35 min.","Season the fish with salt, pepper, lemon and herbs. Bake for the last 12-15 min, or pan-cook 3-5 min per side depending on thickness.","Cook or steam the vegetables.","Mix the yogurt with lemon, garlic and herbs and serve as sauce."],
+  "Use the lower end of the oil if the day already has more fat."),
+ fajitas:R("Chicken fajitas","Dinners","~700-760 kcal · 55-65 g P · 20-25 min","Tuesday dinner",
+  ["200 g chicken breast","2 medium wraps","1 large bell pepper","½ onion","50-70 g salsa","60-80 g low-fat yogurt","Optional 30-40 g corn","Paprika, cumin, garlic, chilli, lime/lemon"],
+  ["Slice the chicken and vegetables into strips.","Cook the chicken over high heat 6-8 min with the fajita spices.","Add pepper/onion and cook 5-6 min more.","Warm the wraps and fill with chicken mix, salsa, yogurt and optional corn."],
+  "Keep the sauce yogurt-based rather than mayo-based."),
+ burger:R("Lean burger + potatoes","Dinners","~740-820 kcal · 45-55 g P · 30-35 min","Wednesday dinner",
+  ["180-200 g lean beef mince","1 burger bun","300 g potatoes","Vegetables/pickles","15 g ketchup","10 g mustard","5-10 g olive oil"],
+  ["Heat the oven to 210 °C. Cut the potatoes, season and roast about 30 min with measured oil.","Shape the beef into a patty, season, and cook in a hot pan about 3-5 min per side depending on thickness.","Toast the bun briefly. Assemble with vegetables, pickles, ketchup and mustard."],
+  "One of the higher-fat dinners. Choose lean mince and keep the oil measured; use the lower end of the evening food."),
+ curry:R("Chicken curry + basmati rice","Dinners","~720-790 kcal · 55-65 g P · 25-30 min","Thursday dinner",
+  ["200 g chicken breast","85-90 g dry basmati rice","200-250 g vegetables","150 g passata/chopped tomatoes","70-100 g low-fat yogurt","Curry powder, cumin, garlic, chilli, salt","Optional 5 g oil"],
+  ["Cook the rice (normally 12-15 min).","Cube the chicken and brown 6-8 min with the curry spices.","Add the vegetables and cook 4-5 min.","Add the passata/tomatoes and simmer 6-8 min.","Turn the heat low or off and stir in the yogurt so it stays creamy rather than splitting. Serve with the rice."],
+  "Yogurt instead of cream or coconut milk keeps protein high and fat controlled."),
+ tunapasta:R("Tuna arrabbiata pasta","Dinners","~630-700 kcal · 55-65 g P · 18-22 min","Friday dinner",
+  ["90-100 g dry pasta","150-180 g drained tuna","200 g passata","10-15 g Parmesan","Garlic, chilli flakes, herbs, salt","Optional 5 g olive oil"],
+  ["Boil the pasta until al dente.","Heat garlic/chilli briefly, add the passata and simmer 8-10 min.","Stir in the drained tuna only for the final 2-3 min.","Mix with the pasta and finish with Parmesan."],
+  "Adding the tuna at the end keeps its texture."),
+ salmon:R("Salmon, potatoes + vegetables","Dinners","~760-830 kcal · 45-55 g P · 35-40 min","Saturday dinner",
+  ["180-200 g salmon","300-350 g potatoes","250 g vegetables","60-80 g yogurt sauce","Lemon, dill/herbs, garlic","Optional 5 g oil for potatoes"],
+  ["Heat the oven to 210 °C. Start the potatoes first; roast 30-35 min.","Add the seasoned salmon for the final 12-15 min.","Cook the vegetables while the salmon finishes.","Serve with the yogurt-lemon-herb sauce."],
+  "Salmon adds useful fats, so keep added oil low that day."),
+ parm:R("Chicken parmigiana + pasta","Dinners","~760-830 kcal · 65-75 g P · 35-40 min","Sunday dinner",
+  ["200 g chicken breast","80-90 g dry pasta","150-200 g passata","40-50 g light mozzarella","10 g Parmesan","Optional 15-20 g breadcrumbs","Garlic, basil, oregano, chilli"],
+  ["Flatten the chicken slightly and season. Add a light breadcrumb coating if using it.","Pan-sear or oven-bake the chicken until nearly cooked through.","Top with passata, mozzarella and Parmesan; grill/bake until melted and the chicken is fully cooked.","Boil the pasta and mix with the remaining passata, garlic and herbs."],
+  "Keep the breadcrumb layer light, or skip it."),
+ salsa:R("Fresh tomato salsa","Sauces","~15-25 kcal · 0.5-1 g P · <0.5 g F per 50 g · 10 min · ~4 × 50 g","Monday chicken bowl (in place of the jarred salsa)",
+  ["150 g ripe tomatoes, diced","¼ small red onion, finely diced","Juice of ½ lime","Fresh parsley or coriander","Salt, pepper; optional chilli"],
+  ["Dice the tomatoes and onion finely.","Combine in a bowl with the lime juice and herbs.","Season and chill in a sealed container. Spoon off excess liquid before packing."],
+  "Add it cold, after reheating the bowl. Use within 2-3 days."),
+ tzatziki:R("Tzatziki-style Greek yogurt","Sauces","~30-40 kcal · 4-5 g P · 0-1 g F per 50 g · 10 min · ~3-4 × 50 g","Wednesday chicken bowl (in place of the plain yogurt)",
+  ["150 g plain 0% Greek yogurt","½ cucumber, grated","1 small garlic clove, minced","1 tbsp lemon juice","Fresh dill or parsley; salt and pepper"],
+  ["Grate the cucumber and squeeze it thoroughly to remove the water.","Mix all ingredients until evenly combined.","Chill; stir before portioning into small leak-proof containers."],
+  "Spoon on after reheating. Made Sunday, Wednesday is day 3, the limit for homemade yogurt sauces."),
+ smoky:R("Smoky spicy yogurt","Sauces","~30-35 kcal · ~5 g P · 0-1 g F per 50 g · 5 min · 2 × 50 g","Friday chicken bowl · also good in the Sunday wraps",
+  ["100 g plain 0% Greek yogurt","1 tsp smoked paprika","½ tsp garlic powder","Small pinch of chilli powder","1 tsp lemon juice; salt"],
+  ["Put the yogurt in a bowl; add the paprika, garlic powder and chilli.","Add the lemon juice, stir until smooth and adjust the seasoning.","Refrigerate and portion just before packing."],
+  "Make it Thursday evening so it's fresh for the Friday bowl, which comes from the freezer."),
+ lemonmustard:R("Lemon-mustard yogurt","Sauces","~30-40 kcal · ~5 g P · 0-1 g F per 50 g · 5 min · 2 × 50 g","Swap-in: any chicken bowl, or with the Monday white fish",
+  ["100 g plain 0% Greek yogurt","1 tsp Dijon mustard","1 tbsp lemon juice","Small pinch of garlic powder","Black pepper"],
+  ["Whisk the yogurt, mustard and lemon juice in a small bowl.","Add the garlic powder and pepper; mix well.","Taste and adjust the lemon or mustard."],
+  "Use it when you want a change from the other three. Made fresh, it keeps about 3 days."),
+ saucerules:R("Sauce prep, packing + storage","Sauces","Portions of ~50 g, packed separately","Sunday · Thursday evening",
+  [],[
+  "Sunday: make the fresh tomato salsa (Mon) and the tzatziki (Wed) alongside the batch cook.",
+  "Thursday evening: make the smoky spicy yogurt for Friday.",
+  "Pack each sauce in its own small leak-proof pot so the rice and chicken reheat cleanly.",
+  "At the office, carry yogurt sauces cold in an insulated bag with an ice pack if there's no fridge straight away. Refrigerate on arrival.",
+  "Keep at 4 °C or below. Use fresh salsa within 2-3 days and yogurt sauces within about 3 days. Discard if left out too long or if the smell or texture is off."],
+  "A 50 g yogurt sauce has about the same calories as the plain 50 g yogurt it replaces, so the bowl's macros don't change."),
+ prep:R("Sunday meal-prep workflow","Meal prep","~75-90 min total · ~45-60 min active","Sunday: 3 chicken bowls + 2 beef pastas",
+  [],[
+  "0-10 min: wash/chop peppers, onions and other vegetables. Dice 540 g chicken for the 3 bowls. Put rice and pasta water on.",
+  "10-25 min: start 255 g dry rice and 170 g dry pasta. Season the chicken. Brown the 300 g lean beef for the two pastas.",
+  "20-35 min: cook the chicken in batches or one large pan. Add vegetables/passata to the beef and simmer. Drain the pasta slightly al dente.",
+  "30-45 min: cook/finish the vegetables for the bowls. Add corn. Mix the pasta into the beef sauce. Check seasoning.",
+  "45-60 min: divide rice/chicken/veg into 3 containers and beef pasta into 2. Add salsa; keep the yogurt separate.",
+  "60-90 min: let the steam escape and the food cool briefly, then refrigerate/freeze promptly. Clean while it cools."],
+  "Vegetables first, then raw chicken on the same board; wash board and knife straight after. Pre-mix a spice jar (paprika + cumin + garlic + chilli) and label the containers Mon-Fri before filling them."),
+ storage:R("Storage, defrosting + reheating","Meal prep","Fridge Mon-Wed · freezer Thu-Fri","Sunday → Friday",
+  [],[
+  "Refrigerate the Monday, Tuesday and Wednesday portions, cold and sealed.",
+  "Freeze the Thursday and Friday portions on Sunday once cooled.",
+  "Move the next frozen portion to the fridge the night before.",
+  "Reheat until thoroughly hot and steaming. Don't leave rice and chicken at room temperature for long.",
+  "Add yogurt sauces and Parmesan after reheating."],
+  "If lunch ends up eaten cold, the chicken bowl is nicer than the pasta.")
+};
+const RGROUPS=["Daily & snacks","Weekday lunches","Sauces","Weekend lunches","Dinners","Meal prep"];
+const GROCERIES=[
+ {id:"gsat",name:"Saturday",tag:"Main shop",note:"Covers Saturday dinner through Friday.",sections:[
+  ["Meat, fish & protein",[
+   ["Chicken breast","~920 g"],
+   ["Lean beef mince","300 g","5% ideal; 15% adds ~100 kcal/portion"],
+   ["Salmon","~190 g"],
+   ["White fish, frozen","~210 g"],
+   ["Tuna in water","2 cans"],
+   ["Eggs","6-pack","+ liquid egg whites if available"],
+   ["Protein bars","3","≥20 g protein, ≤8 g fat"],
+   ["Protein milk drinks","2"]]],
+  ["Dairy",[
+   ["Plain Skyr / low-fat Greek yogurt","~1.4 kg","3 tubs of 450 g; sauce yogurt listed below"],
+   ["Parmesan","small piece","Lasts 2–3 weeks"],
+   ["Light mozzarella","1 ball"]]],
+  ["Carbohydrates",[
+   ["Potatoes","1 kg"],
+   ["Wraps","1 pack","Need 4"],
+   ["Toast bread","1 pack"]]],
+  ["Fruit",[
+   ["Bananas","4"],
+   ["Apples / portable fruit","4–5"],
+   ["Frozen berries","500–750 g","Or kiwis/oranges if no freezer space"],
+   ["Lemons / limes","3–4"]]],
+  ["Vegetables",[
+   ["Bell peppers","6"],
+   ["Onions","5"],
+   ["Zucchini","3"],
+   ["Garlic","1 bulb"],
+   ["Corn","1 can"],
+   ["Broccoli or green beans","~250 g","Monday fish"],
+   ["Veg for salmon","~250 g"],
+   ["Salad bag + tomato / cucumber","","Sunday wraps (sauce veg listed below)"]]],
+  ["Sauces & seasonings",[
+   ["Passata","~900 g","2 bottles"],
+   ["Salsa","~300 g"],
+   ["Ketchup, mustard, pickles","check"],
+   ["Spices","check","Paprika, cumin, chilli, curry, oregano, basil, dill, garlic"],
+   ["Olive oil","check"],
+   ["Dark chocolate","small bar"]]],
+  ["Pantry — restock only when low",[
+   ["Rice","check"],
+   ["Pasta","check"],
+   ["Granola","check"],
+   ["Cereal","check"],
+   ["Breadcrumbs","check"],
+   ["Whey","check","~210 g per week"],
+   ["Creatine","check"]]],
+  ["For the sauces",[
+   ["Plain 0% Greek yogurt","~250 g","Tzatziki + smoky yogurt; +100 g for lemon-mustard"],
+   ["Ripe tomatoes","~150 g","Fresh salsa"],
+   ["Cucumber","½","Tzatziki"],
+   ["Small red onion","1","Salsa"],
+   ["Fresh parsley, coriander or dill","1 bunch"],
+   ["Dijon mustard","check","Lemon-mustard only"],
+   ["Smoked paprika + garlic powder","check"]]]
+ ]},
+ {id:"gtue",name:"Tuesday",tag:"Top-up",note:"After work, ~10 minutes.",sections:[
+  ["",[
+   ["Chicken breast","~400 g","Tue fajitas + Thu curry — check use-by"],
+   ["Lean beef mince","~190 g","Wed burger"],
+   ["Burger bun","1"],
+   ["Bananas","3–4"],
+   ["Fruit, if low",""]]]]},
+ {id:"gthu",name:"Thursday / Friday",tag:"Optional",note:"Only if running low.",sections:[
+  ["",[
+   ["Bananas",""],
+   ["Skyr",""]]]]}
+];
+
+const COST=[{"n": "Chicken breast", "c": "Protein", "use": 1320, "unit": "g", "pl": "~500 g tray", "pp": 11.5, "src": "c", "note": "CHF 2.30/100 g regular; promos around CHF 1.49/100 g", "mo": 131.46, "lasts": 0.4, "rh": "Every shop", "packs": 11.4, "buys": [], "per": false}, {"n": "Lean beef mince", "c": "Protein", "use": 490, "unit": "g", "pl": "500 g", "pp": 10.0, "src": "e", "note": "Pick the leanest on the shelf", "mo": 42.43, "lasts": 1.0, "rh": "Every shop", "packs": 4.2, "buys": [], "per": false}, {"n": "Salmon fillet", "c": "Protein", "use": 190, "unit": "g", "pl": "2 × 125 g", "pp": 8.95, "src": "e", "note": "Pack is 250 g; plan uses 180-200 g", "mo": 38.75, "lasts": 1.0, "rh": "Every shop", "packs": 4.3, "buys": [], "per": true}, {"n": "White fish, frozen", "c": "Protein", "use": 210, "unit": "g", "pl": "400 g bag", "pp": 5.95, "src": "e", "note": "", "mo": 13.53, "lasts": 1.9, "rh": "Every 2–3 weeks", "packs": 2.3, "buys": ["2026-10-03", "2026-10-10", "2026-10-24", "2026-11-07", "2026-11-21"], "per": false}, {"n": "Tuna in water", "c": "Protein", "use": 2, "unit": "cans", "pl": "3-can pack", "pp": 4.5, "src": "e", "note": "", "mo": 12.99, "lasts": 1.5, "rh": "Every 2–3 weeks", "packs": 2.9, "buys": ["2026-10-03", "2026-10-10", "2026-10-24", "2026-10-31", "2026-11-14", "2026-11-21"], "per": false}, {"n": "Eggs", "c": "Protein", "use": 3, "unit": "eggs", "pl": "6 eggs", "pp": 3.5, "src": "e", "note": "", "mo": 7.58, "lasts": 2.0, "rh": "Every 2–3 weeks", "packs": 2.2, "buys": ["2026-10-03", "2026-10-17", "2026-10-31", "2026-11-14", "2026-11-28"], "per": false}, {"n": "Egg whites", "c": "Protein", "use": 175, "unit": "g", "pl": "500 g carton", "pp": 3.95, "src": "e", "note": "Check Denner stocks it; keeps a few days once open", "mo": 17.1, "lasts": 1.0, "rh": "Every shop", "packs": 4.3, "buys": [], "per": true}, {"n": "Protein bars", "c": "Protein", "use": 3, "unit": "bars", "pl": "1 bar", "pp": 2.2, "src": "e", "note": "Multipacks are cheaper", "mo": 28.58, "lasts": 0.3, "rh": "Every shop", "packs": 13.0, "buys": [], "per": false}, {"n": "Protein milk", "c": "Protein", "use": 2, "unit": "drinks", "pl": "1 drink", "pp": 2.4, "src": "e", "note": "", "mo": 20.78, "lasts": 0.5, "rh": "Every shop", "packs": 8.7, "buys": [], "per": false}, {"n": "Whey", "c": "Supplements", "use": 210, "unit": "g", "pl": "1 kg", "pp": 35.0, "src": "e", "note": "Usually bought outside Denner", "mo": 31.83, "lasts": 4.8, "rh": "About monthly", "packs": 0.9, "buys": ["2026-10-03", "2026-10-31"], "per": false}, {"n": "Creatine", "c": "Supplements", "use": 35, "unit": "g", "pl": "500 g", "pp": 25.0, "src": "e", "note": "Usually bought outside Denner", "mo": 7.58, "lasts": 14.3, "rh": "A few times a year", "packs": 0.3, "buys": ["2026-10-03"], "per": false}, {"n": "Skyr / 0% Greek yogurt", "c": "Dairy", "use": 1655, "unit": "g", "pl": "450 g tub", "pp": 2.6, "src": "e", "note": "Snacks, evening bowls, dinner sauces and the 4 lunch sauces", "mo": 41.4, "lasts": 0.3, "rh": "Every shop", "packs": 15.9, "buys": [], "per": false}, {"n": "Parmesan", "c": "Dairy", "use": 45, "unit": "g", "pl": "200 g piece", "pp": 4.5, "src": "e", "note": "", "mo": 4.38, "lasts": 4.4, "rh": "About monthly", "packs": 1.0, "buys": ["2026-10-03", "2026-10-31", "2026-11-28"], "per": false}, {"n": "Light mozzarella", "c": "Dairy", "use": 45, "unit": "g", "pl": "1 ball", "pp": 1.5, "src": "e", "note": "One ball a week; most of it is surplus", "mo": 6.5, "lasts": 1.0, "rh": "Every shop", "packs": 4.3, "buys": [], "per": true}, {"n": "Rice", "c": "Carbs", "use": 345, "unit": "g", "pl": "1 kg bag", "pp": 1.35, "src": "c", "note": "Denner parboiled rice", "mo": 2.02, "lasts": 2.9, "rh": "Every 2–3 weeks", "packs": 1.5, "buys": ["2026-10-03", "2026-10-17", "2026-11-07", "2026-11-28"], "per": false}, {"n": "Pasta", "c": "Carbs", "use": 350, "unit": "g", "pl": "500 g", "pp": 1.2, "src": "e", "note": "", "mo": 3.64, "lasts": 1.4, "rh": "Every shop", "packs": 3.0, "buys": [], "per": false}, {"n": "Potatoes", "c": "Carbs", "use": 950, "unit": "g", "pl": "2.5 kg bag", "pp": 3.95, "src": "e", "note": "Keep cool and dark", "mo": 6.5, "lasts": 2.6, "rh": "Every 2–3 weeks", "packs": 1.6, "buys": ["2026-10-03", "2026-10-17", "2026-11-07", "2026-11-21"], "per": false}, {"n": "Wraps", "c": "Carbs", "use": 4, "unit": "wraps", "pl": "6 wraps", "pp": 2.5, "src": "e", "note": "", "mo": 7.22, "lasts": 1.5, "rh": "Every 2–3 weeks", "packs": 2.9, "buys": ["2026-10-03", "2026-10-10", "2026-10-24", "2026-10-31", "2026-11-14", "2026-11-21"], "per": false}, {"n": "Toast bread", "c": "Carbs", "use": 2, "unit": "slices", "pl": "500 g loaf", "pp": 1.6, "src": "e", "note": "Freeze it and toast from frozen", "mo": 0.77, "lasts": 9.0, "rh": "Every 2–3 months", "packs": 0.5, "buys": ["2026-10-03"], "per": false}, {"n": "Burger buns", "c": "Carbs", "use": 1, "unit": "buns", "pl": "4 buns", "pp": 2.5, "src": "e", "note": "Freeze the rest", "mo": 2.71, "lasts": 4.0, "rh": "About monthly", "packs": 1.1, "buys": ["2026-10-03", "2026-10-31", "2026-11-28"], "per": false}, {"n": "Granola", "c": "Carbs", "use": 80, "unit": "g", "pl": "500 g", "pp": 3.5, "src": "e", "note": "", "mo": 2.42, "lasts": 6.2, "rh": "About monthly", "packs": 0.7, "buys": ["2026-10-03", "2026-11-14"], "per": false}, {"n": "Cereal", "c": "Carbs", "use": 30, "unit": "g", "pl": "375 g", "pp": 3.0, "src": "e", "note": "", "mo": 1.04, "lasts": 12.5, "rh": "Every 2–3 months", "packs": 0.3, "buys": ["2026-10-03"], "per": false}, {"n": "Breadcrumbs", "c": "Carbs", "use": 20, "unit": "g", "pl": "200 g", "pp": 1.2, "src": "e", "note": "Optional", "mo": 0.52, "lasts": 10.0, "rh": "Every 2–3 months", "packs": 0.4, "buys": ["2026-10-03"], "per": false}, {"n": "Bananas", "c": "Fruit", "use": 7, "unit": "bananas", "pl": "per banana", "pp": 0.22, "src": "c", "note": "CHF 1.20/kg at the time of checking", "mo": 6.67, "lasts": 0.1, "rh": "Every shop", "packs": 30.3, "buys": [], "per": false}, {"n": "Apples / other fruit", "c": "Fruit", "use": 5, "unit": "pieces", "pl": "per piece", "pp": 0.7, "src": "e", "note": "", "mo": 15.16, "lasts": 0.2, "rh": "Every shop", "packs": 21.6, "buys": [], "per": false}, {"n": "Frozen berries", "c": "Fruit", "use": 300, "unit": "g", "pl": "500 g", "pp": 3.95, "src": "e", "note": "", "mo": 10.26, "lasts": 1.7, "rh": "Every 2–3 weeks", "packs": 2.6, "buys": ["2026-10-03", "2026-10-10", "2026-10-24", "2026-11-07", "2026-11-14", "2026-11-28"], "per": false}, {"n": "Lemons / limes", "c": "Fruit", "use": 4, "unit": "pieces", "pl": "per piece", "pp": 0.5, "src": "e", "note": "", "mo": 8.66, "lasts": 0.2, "rh": "Every shop", "packs": 17.3, "buys": [], "per": false}, {"n": "Bell peppers", "c": "Vegetables", "use": 6, "unit": "peppers", "pl": "3-pack", "pp": 2.95, "src": "e", "note": "", "mo": 25.55, "lasts": 0.5, "rh": "Every shop", "packs": 8.7, "buys": [], "per": false}, {"n": "Onions (incl. 1 red)", "c": "Vegetables", "use": 6, "unit": "onions", "pl": "1 kg net", "pp": 1.8, "src": "e", "note": "", "mo": 5.85, "lasts": 1.3, "rh": "Every shop", "packs": 3.2, "buys": [], "per": false}, {"n": "Zucchini", "c": "Vegetables", "use": 3, "unit": "pieces", "pl": "per piece", "pp": 1.0, "src": "e", "note": "", "mo": 12.99, "lasts": 0.3, "rh": "Every shop", "packs": 13.0, "buys": [], "per": false}, {"n": "Garlic", "c": "Vegetables", "use": 0.5, "unit": "bulbs", "pl": "3 bulbs", "pp": 1.95, "src": "e", "note": "", "mo": 1.41, "lasts": 6.0, "rh": "About monthly", "packs": 0.7, "buys": ["2026-10-03", "2026-11-14"], "per": false}, {"n": "Corn", "c": "Vegetables", "use": 1, "unit": "cans", "pl": "1 can", "pp": 1.1, "src": "e", "note": "", "mo": 4.76, "lasts": 1.0, "rh": "Every shop", "packs": 4.3, "buys": [], "per": false}, {"n": "Frozen vegetables", "c": "Vegetables", "use": 500, "unit": "g", "pl": "750 g bag", "pp": 2.95, "src": "e", "note": "Fish, salmon and curry dinners", "mo": 8.52, "lasts": 1.5, "rh": "Every 2–3 weeks", "packs": 2.9, "buys": ["2026-10-03", "2026-10-10", "2026-10-24", "2026-10-31", "2026-11-14", "2026-11-21"], "per": false}, {"n": "Salad + tomato/cucumber", "c": "Vegetables", "use": 1, "unit": "sets", "pl": "per week", "pp": 4.5, "src": "e", "note": "Sunday wraps", "mo": 19.48, "lasts": 1.0, "rh": "Every shop", "packs": 4.3, "buys": [], "per": false}, {"n": "Sauce veg + herbs", "c": "Vegetables", "use": 1, "unit": "sets", "pl": "per week", "pp": 3.0, "src": "e", "note": "Tomatoes, ½ cucumber, herbs", "mo": 12.99, "lasts": 1.0, "rh": "Every shop", "packs": 4.3, "buys": [], "per": false}, {"n": "Passata", "c": "Sauces & pantry", "use": 875, "unit": "g", "pl": "680 g jar", "pp": 1.95, "src": "e", "note": "Cirio is ~CHF 3.25 regular, often on promo", "mo": 10.86, "lasts": 0.8, "rh": "Every shop", "packs": 5.6, "buys": [], "per": false}, {"n": "Salsa", "c": "Sauces & pantry", "use": 230, "unit": "g", "pl": "300 g jar", "pp": 2.95, "src": "e", "note": "", "mo": 9.79, "lasts": 1.3, "rh": "Every shop", "packs": 3.3, "buys": [], "per": false}, {"n": "Dark chocolate", "c": "Sauces & pantry", "use": 35, "unit": "g", "pl": "100 g bar", "pp": 1.5, "src": "e", "note": "", "mo": 2.27, "lasts": 2.9, "rh": "Every 2–3 weeks", "packs": 1.5, "buys": ["2026-10-03", "2026-10-17", "2026-11-07", "2026-11-28"], "per": false}, {"n": "Olive oil", "c": "Sauces & pantry", "use": 35, "unit": "ml", "pl": "1 L", "pp": 9.95, "src": "e", "note": "If you measure it", "mo": 1.51, "lasts": 28.6, "rh": "A few times a year", "packs": 0.2, "buys": ["2026-10-03"], "per": false}, {"n": "Ketchup, mustard, Dijon, pickles", "c": "Sauces & pantry", "use": 1, "unit": "", "pl": "a few jars", "pp": 8.0, "src": "e", "note": "Replace roughly every 4 months", "mo": 2.17, "lasts": 16.0, "rh": "A few times a year", "packs": 0.3, "buys": ["2026-10-03"], "per": false}, {"n": "Spices", "c": "Sauces & pantry", "use": 1, "unit": "", "pl": "jars", "pp": 10.0, "src": "e", "note": "Paprika, cumin, chilli, curry, herbs", "mo": 2.17, "lasts": 20.0, "rh": "A few times a year", "packs": 0.2, "buys": ["2026-10-03"], "per": false}];
+const COST_CATS=["Protein", "Supplements", "Dairy", "Carbs", "Fruit", "Vegetables", "Sauces & pantry"];
+const ids={routine:[],groceries:[]};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const today=new Date().getDay();
+
+function rowHTML(id,text,small,qty,flag,rk){
+  ids.current.push(id);
+  const rb=rk&&RECIPES[rk]?`<button type="button" class="rlink" data-recipe="${rk}" aria-label="Recipe: ${esc(RECIPES[rk].title)}">Recipe</button>`:"";
+  return `<li><label class="row" data-id="${id}"><input type="checkbox" id="c-${id}"><span class="txt${flag?" flag":""}">${esc(text)}${small?`<small>${esc(small)}</small>`:""}</span>${qty?`<span class="qty">${esc(qty)}</span>`:""}${rb}</label></li>`;
+}
+const chf=v=>"CHF "+v.toFixed(2);
+const chf0=v=>v<1?"< CHF 1":"CHF "+Math.round(v);
+const fmtUse=r=>{if(r.unit===""||r.unit==="sets")return "Bought weekly";const u=r.use>=1000?r.use.toLocaleString("en-CH"):r.use;return `${u} ${r.unit}/week`};
+const DMON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const fmtD=iso=>{const [y,m,dd]=iso.split("-");return `Sat ${+dd} ${DMON[+m-1]}`};
+function monthHTML(){
+  const tot=COST.reduce((a,r)=>a+r.mo,0);
+  const cats=COST_CATS.map(c=>[c,COST.filter(r=>r.c===c).reduce((a,r)=>a+r.mo,0)]).sort((a,b)=>b[1]-a[1]);
+  const max=cats[0][1];
+  const bars=cats.map(([c,v])=>`<div class="mbar"><span class="mlab">${c}</span><span class="mtrack"><span class="mfill" style="width:${(v/max*100).toFixed(1)}%"></span></span><span class="mval">${chf0(v)}</span></div>`).join("");
+  const dates=[...new Set(COST.flatMap(r=>r.buys))].sort();
+  const cal=dates.map((iso,i)=>{const it=COST.filter(r=>r.buys.includes(iso));return `<div class="cday"><div class="cdate">${fmtD(iso)}${i===0?' <span class="tag">Start</span>':""}</div><div class="citems">${i===0?"Open a fresh pack of everything below the weekly items, or check what you already have":it.map(r=>esc(r.n)).join(" · ")}</div></div>`}).join("");
+  const groups=COST_CATS.map(c=>{const list=COST.filter(r=>r.c===c);const sub=list.reduce((a,r)=>a+r.mo,0);
+    return `<details class="grp mcat"><summary><span class="gname">${c}</span><span class="count">${chf0(sub)}/mo</span><span class="chev"></span></summary><ul>${list.map(r=>`<li class="mrow"><span class="txt">${esc(r.n)}<small>${esc(fmtUse(r))} · ${esc(r.pl)} ${chf(r.pp)}${r.src==="c"?"":" <i>est.</i>"}</small><small>${r.per?"Short shelf life once open: bought weekly":r.lasts<1.5?`${r.packs} packs a month`:`One pack lasts ~${r.lasts} weeks`}${r.note?" · "+esc(r.note):""}</small></span><span class="mright"><span class="qty">${chf0(r.mo)}</span><span class="rh">${esc(r.rh)}</span></span></li>`).join("")}</ul></details>`}).join("");
+  return `<div class="msum"><div class="mbig">~${chf0(tot)}<span> / month</span></div><div class="msub">≈ ${chf(tot/30.4)} a day · ≈ ${chf0(tot/4.33)} a week</div><p class="mnote">Prices marked est. are typical Swiss discounter prices; the others were checked on denner.ch or price trackers. Weekly promotions can lower this noticeably.</p></div>
+  <div class="grp mpad"><div class="sect" style="padding-left:0">Where the money goes</div>${bars}</div>
+  <div class="grp mpad"><div class="sect" style="padding-left:0">Restock calendar · Oct–Nov</div><p class="mnote" style="margin-top:0">Items that last longer than a week, on the Saturday before they run out. Fresh items are on every shop.</p>${cal}</div>
+  <div class="grp mpad"><div class="sect" style="padding-left:0">Ways to spend less</div><ul class="mtips"><li>Chicken is almost a quarter of the bill. At a 35% promotion it saves about CHF 45 a month, but your freezer fits only about 4 containers, so buy at most one extra week.</li><li>Protein bars and protein milk cost about CHF 50 a month together. Multipacks on promotion are the easiest saving.</li><li>Salmon comes in 250 g packs. Either eat the full 250 g (about 100 kcal more that day) or accept the leftover.</li><li>Whey and creatine usually aren't Denner products. Buying 2 kg of whey at a time is often cheaper per gram.</li></ul></div>
+  <div class="sect" style="padding:6px 2px 0">Every item · per month</div>${groups}`;
+}
+function build(){
+  ids.current=ids.routine;
+  document.getElementById("routine").innerHTML=ROUTINE.map(d=>{
+    const rows=d.items.map((it,i)=>rowHTML(`${d.id}3-${i}`,it[0],it[1],"",it[2],it[3])).join("");
+    const isToday=d.dow===today;
+    return `<details class="grp" data-g="${d.id}"${isToday?" open":""}><summary><span class="gname">${d.name}</span><span class="tag${isToday?" today":""}">${isToday?"Today · ":""}${d.tag}</span><span class="count" id="n-${d.id}"></span><span class="chev"></span></summary><ul>${rows}</ul></details>`;
+  }).join("");
+  ids.current=ids.groceries;
+  document.getElementById("groceries").innerHTML=GROCERIES.map((g,gi)=>{
+    let k=0;
+    const body=g.sections.map(([title,list])=>(title?`<div class="sect">${esc(title)}</div>`:"")+`<ul>${list.map(it=>rowHTML(`${g.id}-${k++}`,it[0],it[2],it[1])).join("")}</ul>`).join("");
+    return `<details class="grp" data-g="${g.id}"${gi===0?" open":""}><summary><span class="gname">${g.name}</span><span class="tag">${g.tag}</span><span class="count" id="n-${g.id}"></span><span class="chev"></span></summary><p class="note">${esc(g.note)}</p>${body}</details>`;
+  }).join("");
+  document.getElementById("groceries").innerHTML=`<div class="gseg" role="group" aria-label="Groceries view"><button id="gv-lists" data-gv="lists">Shopping lists</button><button id="gv-month" data-gv="month">Month: cost + restock</button></div><div id="glists" class="panel" style="margin-top:0">${document.getElementById("groceries").innerHTML}</div><div id="gmonth" class="panel" style="margin-top:0" hidden>${monthHTML()}</div>`;
+  const L=a=>a.map(x=>`<li>${esc(x)}</li>`).join("");
+  document.getElementById("recipes").innerHTML=`<p class="note" style="padding:0 2px">From the Weekly Nutrition Program, 29 Sep 2026. Amounts are per portion.</p>`+RGROUPS.map(g=>`<div class="rhead">${g}</div>`+Object.entries(RECIPES).filter(([,r])=>r.group===g).map(([k,r])=>`<details class="grp rcard" id="r-${k}" data-r="${k}"><summary><span class="rt">${esc(r.title)}</span><span class="chev"></span></summary><div class="rbody"><div class="rmac">${esc(r.macros)}</div><div class="rused">${esc(r.used)}</div>${r.ing.length?`<h4>Ingredients</h4><ul>${L(r.ing)}</ul>`:""}${r.extra?`<div class="ropt">${r.extra.map(o=>`<b>${esc(o[0])}</b><span>${esc(o[1])}<small>${esc(o[2])}</small></span>`).join("")}</div>`:""}${r.method.length?`<h4>${r.ing.length?"Method":"Steps"}</h4><ol>${L(r.method)}</ol>`:""}<p class="rtip">${esc(r.tip)}</p><button type="button" class="rback" hidden>← Back</button></div></details>`).join("")).join("");
+}
+build();
+
+let checked={};
+function paint(){
+  document.querySelectorAll(".row").forEach(r=>{
+    const on=!!checked[r.dataset.id];
+    r.classList.toggle("on",on);
+    r.querySelector("input").checked=on;
+  });
+  document.querySelectorAll("#routine .grp, #groceries .grp").forEach(g=>{
+    const boxes=g.querySelectorAll(".row");
+    const n=[...boxes].filter(r=>checked[r.dataset.id]).length;
+    const c=g.querySelector(".count");if(!c||g.classList.contains("mcat"))return;
+    c.textContent=`${n}/${boxes.length}`;
+    c.classList.toggle("full",n===boxes.length);
+  });
+}
+
+const statusEl=document.getElementById("status");
+let db=null,ref=null,writing=false,pending=false,timer=null;
+function saveLocal(){try{localStorage.setItem("wfc-checked",JSON.stringify(checked))}catch(e){}}
+function loadLocal(){try{return JSON.parse(localStorage.getItem("wfc-checked")||"{}")||{}}catch(e){return{}}}
+
+async function flush(){
+  if(!ref){saveLocal();return}
+  if(writing){pending=true;return}
+  writing=true;
+  try{await ref.set({checked:{...checked},updatedAt:new Date().toISOString()});statusEl.textContent="Saved"}
+  catch(e){saveLocal();statusEl.textContent="Couldn't save online — kept on this device"}
+  writing=false;
+  if(pending){pending=false;flush()}
+}
+function schedule(){saveLocal();clearTimeout(timer);timer=setTimeout(flush,400)}
+
+document.addEventListener("change",e=>{
+  const r=e.target.closest(".row");if(!r)return;
+  if(e.target.checked)checked[r.dataset.id]=true;else delete checked[r.dataset.id];
+  paint();schedule();
+});
+
+checked=loadLocal();paint();statusEl.textContent="Saved on this device";
+
+(async()=>{
+  try{db=window.claude?.use?await window.claude.use("db"):null}catch(e){db=null}
+  if(!db){statusEl.textContent="Saved on this device only";return}
+  ref=db.doc("state/checks");
+  ref.onSnapshot(snap=>{
+    if(snap.metadata.hasPendingWrites||writing)return;
+    if(snap.exists){checked={...(snap.data().checked||{})};saveLocal();paint()}
+    statusEl.textContent="Synced across your devices";
+  },()=>{ref=null;statusEl.textContent="Saved on this device only"});
+})();
+
+/* ---------- Training tab ---------- */
+const EX=(name,sets,load,note)=>({name,sets,load,note});
+const PULL_A=[EX("Lat pulldown","3 × 6-10","65 kg","Main vertical pull"),EX("Cable row","3 × 6-10","63 kg","Controlled full range"),EX("Seated DB curl","3 × 8-12","16 kg/hand","Superset with face pull"),EX("Face pull (rope)","2 × 12-20","Light","Pause at the back; not a heavy row")];
+const PULL_B=[EX("Cable row","3 × 6-10","63 kg","Main horizontal pull"),EX("Lat pulldown","3 × 6-10","65 kg","Controlled stretch"),EX("Seated DB curl","3 × 8-12","16 kg/hand","Superset with face pull"),EX("Face pull (rope)","2 × 12-20","Light","Low-fatigue shoulder balance")];
+const WALK={type:"walk",title:"Brisk walk",time:"12:00–13:00",body:"30-40 min brisk walk. Covers part of the energy the swims will burn later, with no recovery cost."};
+const swim=(title,rows,total,foot)=>({type:"swim",title,time:"12:00–13:00",rows,total,foot});
+const MON_SWIM=swim("Main aerobic swim",[["Easy start","200 m comfortable freestyle"],["Build","4 × 50 m, gradually quicker"],["Main set","5 × 100 m at RPE ~6/10, 20-30 s rest → progress to 6 × 100 m"],["Faster finish","4 × 50 m at RPE ~7/10, 20-30 s rest"],["Easy finish","100 m easy"]],"~1,000-1,100 m weeks 1-2 → ~1,200 m · ceiling ~1,300 m","Progress through pace and control, not extra distance. Feels harder than Wednesday because it follows the morning pull.");
+const WED_SWIM=swim("Technique swim",[["Easy start","200 m"],["Drills","4 × 50 m technique"],["Relaxed swim","4 × 100 m easy"],["Drills","2-4 × 50 m technique"],["Easy finish","100 m"]],"~800-1,000 m · RPE ~4/10","Rest as needed to keep technique clean. ~1,100 m only if it fits the hour comfortably.");
+const THU_SWIM=swim("Recovery swim",[["Easy start","200 m"],["Easy repeats","8 × 50 m easy, 15-20 s rest"],["Easy finish","100-200 m"]],"~600-800 m → up to ~900 m · RPE 3-4/10","No pace target. Leave the pool feeling better than when you arrived.");
+const gym=(title,time,rows,foot)=>({type:"gym",title,time,rows,foot});
+const SWIM_FUEL="On swim days, have the banana + whey + creatine by about 10:00–10:30 at the latest so you don't swim at noon on an empty stomach. Lunch becomes the post-swim meal.";
+
+const TDAYS=[
+ {k:"Mon",name:"Monday",where:"Office",routine:"mon",blocks:p=>[gym("Pull A","07:00–07:25",PULL_A,"25-minute rule: don't rush the two compounds. If it overruns, trim one curl set first."),p==="swim"?MON_SWIM:WALK],food:p=>`<b>Food:</b> ${rl("bowl","chicken bowl")} lunch · ${rl("office","bar + apple")} · ${rl("fish","white fish")} dinner · ${rl("evening","protein milk + granola")}.${p==="swim"?" "+SWIM_FUEL:""}`},
+ {k:"Tue",name:"Tuesday",where:"WFH",routine:"tue",blocks:()=>[gym("Legs A + short Push B","12:00–13:00",[EX("Leg press","4 × 6-10","120 kg","Primary lower-body lift"),EX("Leg curl","3 × 8-12","~70 kg","Controlled eccentric"),EX("Hip abductor","2 × 12-20","70 kg","Pair with calves"),EX("Seated calf raise","3 × 10-15","92 kg","Full stretch and pause"),EX("Chest press","3 × 6-10","63-70 kg","Second chest exposure"),EX("Shoulder press","1-2 × 8-10","36-42 kg","Deliberately low volume"),EX("Triceps pushdown","2 × 10-15","23-24 kg","Second triceps exposure")],"If the hour is tight: trim an abductor/calf set or drop shoulder press to 1 set first. Keep the 2 triceps sets.")],food:()=>`<b>Food:</b> ${rl("fixed","banana + whey")} 10:30–11:00 pre-workout · ${rl("beefpasta","beef pasta")} lunch · ${rl("wfh","Skyr + berries + granola")} · ${rl("fajitas","fajitas")} dinner · top-up shop after work.`},
+ {k:"Wed",name:"Wednesday",where:"Office",routine:"wed",blocks:p=>[p==="swim"?WED_SWIM:WALK],food:p=>`<b>Food:</b> ${rl("bowl","chicken bowl")} lunch · ${rl("office","bar + fruit")} · ${rl("burger","burger")} dinner.${p==="swim"?" "+SWIM_FUEL:""}`},
+ {k:"Thu",name:"Thursday",where:"Office",routine:"thu",blocks:p=>[gym("Pull B","07:00–07:25",PULL_B,p==="swim"?"The lunch swim must stay easy. If shoulders or back feel loaded, shorten the swim, not the lift.":"Row first to vary emphasis from Monday."),p==="swim"?THU_SWIM:WALK],food:p=>`<b>Food:</b> ${rl("beefpasta","beef pasta")} lunch · ${rl("office","bar + fruit")} · ${rl("curry","chicken curry")} dinner.${p==="swim"?" "+SWIM_FUEL:""}`},
+ {k:"Fri",name:"Friday",where:"WFH",routine:"fri",blocks:()=>[gym("Push A + abs + lateral delts","12:00–13:00",[EX("Chest press","4 × 6-10","63-70 kg","Primary chest movement"),EX("Shoulder press","3 × 6-10","36-42 kg","Main direct press"),EX("Pec fly","2 × 10-15","50 kg","Controlled stretch"),EX("Lateral raise","2 × 12-20","Find in week 1","<span class='t-new'>New</span> · side delts"),EX("Triceps pushdown","3 × 10-15","23-24 kg","Stable elbows"),EX("Abdominal machine","3 × 10-15","Current","Progress like other machines")],"Short on time: keep both presses, then triceps/abs. Fly and laterals are trimmed first. Wrist discomfort: neutral wrist, less load.")],food:()=>`<b>Food:</b> ${rl("fixed","banana + whey")} 10:30–11:00 · ${rl("bowl","chicken bowl")} lunch · ${rl("wfh","Skyr + fruit + granola")} · ${rl("tunapasta","tuna pasta")} dinner.`},
+ {k:"Sat",name:"Saturday",where:"Flexible",routine:"sat",blocks:()=>[gym("Legs B","Flexible",[EX("Leg press","3 × 6-10","120 kg","Moderate volume"),EX("Hip thrust (machine)","3 × 8-12","Start light","Glutes; build over 2-3 weeks. Do it early."),EX("Leg curl","3 × 8-12","~70 kg","Hamstring balance"),EX("Leg extension","2-3 × 10-15","~70 kg","Higher-rep quads"),EX("Hip abductor","2 × 12-20","70 kg","Accessory"),EX("Seated calf raise","4 × 10-15","92 kg","Full range"),EX("Knee raise or dead bug","2 × 10-15","Bodyweight","<span class='t-opt'>Optional</span> · dead bug if knee raises pull on the back")],"Hip thrust: ribs down, finish by squeezing the glutes, not by arching the back. If it bothers your back, drop it and keep the leg curl.")],food:()=>`<b>Food:</b> ${rl("fixed","banana + whey")} after training · ${rl("eggs","eggs")} lunch · main shop · ${rl("salmon","salmon")} dinner.`},
+ {k:"Sun",name:"Sunday",where:"Home",routine:"sun",blocks:()=>[{type:"rest",title:"Complete rest",time:"",body:"No training. Sunday is meal-prep day instead."}],food:()=>`<b>Food:</b> ${rl("prep","cook the 5 weekday lunches")} · ${rl("wraps","chicken wraps")} · ${rl("parm","chicken parmigiana")}.`}
+];
+const rl=(k,t)=>`<button class="t-link" data-recipe="${k}">${t}</button>`;
+const KIND={gym:"Gym",swim:"Swim",walk:"Walk",rest:"Rest"};
+function tBlock(b){
+  let inner="";
+  if(b.type==="gym") inner=`<div class="t-scroll"><table><thead><tr><th>Exercise</th><th>Sets × reps</th><th>Load</th></tr></thead><tbody>${b.rows.map(r=>`<tr><td>${r.name}<span class="t-note">${r.note}</span></td><td class="n">${r.sets}</td><td class="n">${r.load}</td></tr>`).join("")}</tbody></table></div><div class="t-foot">${b.foot}</div>`;
+  else if(b.type==="swim") inner=`<div class="t-scroll"><table><thead><tr><th>Segment</th><th>Prescription</th></tr></thead><tbody>${b.rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join("")}</tbody></table></div><div class="t-foot"><span class="t-total">${b.total}</span><br>${b.foot}</div>`;
+  else inner=`<div class="t-foot" style="border-top:0">${b.body}</div>`;
+  return `<article class="t-block k-${b.type}"><div class="t-bhead"><h3>${b.title}</h3><div class="t-meta">${b.time?`<span class="t-time">${b.time}</span>`:""}<span class="t-kind">${KIND[b.type]}</span></div></div>${inner}</article>`;
+}
+const todayIdx=(today+6)%7;
+let tstate={day:todayIdx,phase:(new Date()>=new Date("2026-10-26")?"swim":"oct")};
+try{const d=localStorage.getItem("tw-day");if(d!==null&&+d>=0&&+d<7)tstate.day=+d;const p=localStorage.getItem("tw-phase");if(p==="oct"||p==="swim")tstate.phase=p}catch(e){}
+function tRender(){
+  document.querySelectorAll("#training .t-phase button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.phase===tstate.phase)));
+  document.getElementById("tdays").innerHTML=TDAYS.map((d,i)=>`<button class="t-day" id="tday-${d.k}" data-i="${i}" aria-pressed="${i===tstate.day}" aria-label="${d.name}"><b>${d.k}</b><span class="t-dots">${d.blocks(tstate.phase).map(b=>`<span class="t-dot d-${b.type}"></span>`).join("")}</span></button>`).join("");
+  const d=TDAYS[tstate.day];
+  document.getElementById("tdayTitle").textContent=`${d.name} · ${d.where}`;
+  document.getElementById("ttoday").hidden=tstate.day!==todayIdx;
+  document.getElementById("ttimeline").innerHTML=d.blocks(tstate.phase).map(tBlock).join("")+`<div class="t-food">${d.food(tstate.phase)} <button class="t-link" data-routine="${d.routine}">Open ${d.name} checklist</button></div>`;
+}
+document.querySelector("#training .t-phase").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;tstate.phase=b.dataset.phase;try{localStorage.setItem("tw-phase",tstate.phase)}catch(err){}tRender()});
+document.getElementById("tdays").addEventListener("click",e=>{const b=e.target.closest(".t-day");if(!b)return;tstate.day=+b.dataset.i;try{localStorage.setItem("tw-day",tstate.day)}catch(err){}tRender()});
+document.getElementById("ttimeline").addEventListener("click",e=>{const b=e.target.closest("[data-routine]");if(!b)return;show("routine");const g=document.querySelector(`#routine .grp[data-g="${b.dataset.routine}"]`);if(g){g.open=true;g.scrollIntoView({block:"start",behavior:"smooth"})}});
+tRender();
+
+/* groceries view toggle */
+let gview="lists";try{const v=localStorage.getItem("g-view");if(v==="month"||v==="lists")gview=v}catch(e){}
+function gRender(){document.getElementById("glists").hidden=gview!=="lists";document.getElementById("gmonth").hidden=gview!=="month";document.querySelectorAll(".gseg button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.gv===gview)));if(!document.getElementById("groceries").hidden)document.getElementById("reset").hidden=gview==="month"}
+document.querySelector(".gseg").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;gview=b.dataset.gv;try{localStorage.setItem("g-view",gview)}catch(err){}gRender()});
+
+/* recipe links */
+let backTo=null;
+function openRecipe(k,from){
+  const c=document.getElementById("r-"+k);if(!c)return;
+  backTo=from;show("recipes");
+  document.querySelectorAll(".rcard .rback").forEach(b=>b.hidden=true);
+  c.open=true;const b=c.querySelector(".rback");
+  if(from){b.hidden=false;b.textContent="← Back to "+from.label}
+  c.classList.add("flash");setTimeout(()=>c.classList.remove("flash"),1200);
+  c.scrollIntoView({block:"start",behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});
+}
+document.addEventListener("click",e=>{
+  const b=e.target.closest("[data-recipe]");
+  if(b){e.preventDefault();e.stopPropagation();
+    const inTraining=b.closest("#training");
+    const g=b.closest("#routine .grp");
+    const from=inTraining?{tab:"training",label:"Training"}:g?{tab:"routine",g:g.dataset.g,label:g.querySelector(".gname").textContent}:null;
+    openRecipe(b.dataset.recipe,from);return}
+  const bk=e.target.closest(".rback");
+  if(bk&&backTo){const t=backTo;show(t.tab);if(t.g){const g=document.querySelector(`#routine .grp[data-g="${t.g}"]`);if(g){g.open=true;g.scrollIntoView({block:"start"})}}}
+},true);
+
+/* tabs */
+const PANELS=["training","routine","recipes","groceries"];
+const tabs=[...document.querySelectorAll(".tab")];
+const footbar=document.getElementById("footbar");
+function show(name){
+  tabs.forEach(t=>t.setAttribute("aria-selected",String(t.getAttribute("aria-controls")===name)));
+  PANELS.forEach(p=>document.getElementById(p).hidden=p!==name);
+  document.getElementById("reset").hidden=name==="training"||name==="recipes"||(name==="groceries"&&gview==="month");
+  disarm();
+  try{localStorage.setItem("wfc-tab",name)}catch(e){}
+}
+tabs.forEach(t=>t.addEventListener("click",()=>show(t.getAttribute("aria-controls"))));
+let startTab="routine";
+const h=location.hash.slice(1);
+if(PANELS.includes(h))startTab=h;
+else{try{const s=localStorage.getItem("wfc-tab");if(PANELS.includes(s))startTab=s}catch(e){}}
+
+/* reset with in-page confirm */
+const resetBtn=document.getElementById("reset");let armed=false,armTimer=null;
+function disarm(){armed=false;resetBtn.classList.remove("arm");resetBtn.textContent="Reset this tab";clearTimeout(armTimer)}
+resetBtn.addEventListener("click",()=>{
+  if(!armed){armed=true;resetBtn.classList.add("arm");resetBtn.textContent="Tap again to clear all ticks";armTimer=setTimeout(disarm,4000);return}
+  const tab=document.getElementById("routine").hidden?"groceries":"routine";
+  ids[tab].forEach(id=>delete checked[id]);
+  paint();schedule();disarm();statusEl.textContent="Cleared";
+});
+show(startTab);gRender();
+</script>
+
+<script>
+if("serviceWorker" in navigator){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").catch(()=>{})})}
+</script>
+</body></html>
