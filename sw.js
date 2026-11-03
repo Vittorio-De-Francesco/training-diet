@@ -1,6 +1,6 @@
 // Service worker: keeps a copy of the app on the phone so it opens without internet.
 // When you change any file, bump VERSION (v1 -> v2) so phones fetch the new copy.
-const VERSION = "v4";
+const VERSION = "v6";
 const CACHE = "training-" + VERSION;
 const FILES = ["./", "index.html", "manifest.webmanifest", "icon-180.png", "icon-192.png", "icon-512.png"];
 
